@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import DisplayNames from './components/DisplayNames'
 import AddPerson from './components/AddPerson'
-import axios from 'axios'
+import Service from './services/noteService'
 
 
 
@@ -9,33 +9,102 @@ const App = () => {
   const [ persons, setPersons] = useState([])
 
   useEffect(() => {
-    console.log('effect')
+    Service
+      .getAll()
+        .then(notes => {setPersons(notes)})
 
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => {
-        console.log("fulfilled")
-        setPersons(response.data)
-      })
+
   }, [])
 
 
   const [ newName, setNewName ] = useState('')
   const [ newNumber, setNewNumber ] = useState('')
   const [ searchTerm, setNewTerm ] = useState('')
+  const [ notification, setNotification ] = useState(null)
 
   const addNote = (event) => {
     event.preventDefault()
-    setPersons(AddPerson(newName, newNumber, persons.length, persons))
+    
+    const [action, newPerson] = AddPerson(newName, newNumber, persons)
+    if(action === 'a') {
+      Service
+        .create(newPerson)
+          .then(response => {
+            setPersons(persons.concat(response))
+
+            setNotification(`Added ${newPerson.name}`)
+
+            setTimeout(() => {
+              setNotification(null)
+            }, 5000) 
+          })
+
+          .catch(error => {
+            setNotification(
+              `the information of '${newPerson.name}' was already deleted from server`
+            )
+            setTimeout(() => {
+              setNotification(null)
+            }, 5000)
+            setPersons(persons.filter(p => p.name !== newName))
+          })
+      
+      
+    }
+
+    if(action === 'c') {
+      Service
+        .edit(newPerson)
+        .then(response => {
+          const copy = persons.filter(element => element.name !== newName)
+          setPersons(copy.concat(newPerson))
+
+          setNotification(`${newPerson.name} was added to server`)
+
+          setTimeout(() => {
+            setNotification(null)
+          }, 5000) 
+        })
+        .catch(error => {
+          setNotification(
+            `the information of '${newPerson.name}' was already deleted from server`
+          )
+          setTimeout(() => {
+            setNotification(null)
+          }, 5000)
+          setPersons(persons.filter(p => p.name !== newName))
+        })
+    }
+
+    setNewName('')
+    setNewNumber('')
   }
 
-  const nameChanged = (event) => {
-    console.log(event)
-    setNewName(event.target.value)
+  const removeName = (id, name) => {
+    if(window.confirm(`Delete ${name}?`))
+    {
+      Service
+      .remove(id)
+        .then(response => {
+          setPersons(persons.filter(element => element.id !== id))
+        })
+    }
+    
   }
 
-  const numberChanged = (event) => {
-    setNewNumber(event.target.value)
+  const Notification = ({message}) => {
+    if(message === null)
+    {
+      return null
+    }
+
+    else {
+      return (
+        <div className="error">
+          {message}
+        </div>
+      )
+    }
   }
 
   const searchTermChanged = (event) => {
@@ -51,16 +120,17 @@ const App = () => {
         </div>
 
       <h2>Add new</h2>
+      <Notification message={notification} />
       </form>
       <form onSubmit={addNote}>
-        <div> name: <input onChange={nameChanged}/> </div>
-        <div> number: <input onChange={numberChanged} /></div>
+        <div> name: <input onChange={event => setNewName(event.target.value)} value={newName}/> </div>
+        <div> number: <input onChange={event => setNewNumber(event.target.value)} value={newNumber} /></div>
         <div>
           <button type="submit">add</button>
         </div>
       </form>
       <h2>Numbers</h2>
-      <ul><DisplayNames people={persons} term={searchTerm}/></ul>
+      <ul><DisplayNames people={persons} term={searchTerm} func={removeName}/></ul>
     </div>
   )
 

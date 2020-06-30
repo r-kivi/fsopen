@@ -1,6 +1,6 @@
 const FilterData = (data, term) => {
     const filtered = data.filter(element => {
-        return element.name.includes(term)
+        return element.name.toUpperCase().includes(term.toUpperCase())
     })
     return filtered
 }

@@ -6,7 +6,6 @@ import DisplayCountries from './components/DisplayCountries'
 
 const App = () => {
   const [data, setData] = useState([])
-  const [searchTerm, setTerm] = useState('')
   const [origData, setOrig] = useState([])
   useEffect(() => {
     axios
@@ -17,10 +16,11 @@ const App = () => {
         })
 }, [])
   
+  function ShowSingleCountry(name) {
+    setData(FilterData(origData, name))
+  }
 
   const HandleChangedTerm = (event) => {
-    
-    setTerm(event.target.value)
     setData(FilterData(origData, event.target.value))
   }
 
@@ -28,10 +28,10 @@ const App = () => {
     <div>
       <form>
         <div>
-          find countries <input onChange={HandleChangedTerm}/>
+          find countries <input onChange={HandleChangedTerm} onKeyPress={(e) => { e.key === 'Enter' && e.preventDefault(); }}/>
         </div>
         <div>
-          <DisplayCountries data={data}/>
+          <DisplayCountries data={data} func={ShowSingleCountry}/>
         </div>
       </form>
     </div>
